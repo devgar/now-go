@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type Request struct {
@@ -47,6 +48,16 @@ func (w *ResponseWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 }
 
+func (w *ResponseWriter) JSON(v interface{}) (n int, err error) {
+	w.Header().Set("Content-type", "application/json")
+	var p []byte
+	if p, err = json.Marshal(v); err != nil {
+		return
+	}
+	n, err = w.Write(p)
+	return
+}
+
 var userHandler http.Handler
 
 func Serve(handler http.Handler, req *Request) (res Response, err error) {
@@ -68,17 +79,17 @@ func Serve(handler http.Handler, req *Request) (res Response, err error) {
 	for k, v := range req.Headers {
 		r.Header.Add(k, v)
 		switch strings.ToLower(k) {
-			case "host":
-				// we need to set `Host` in the request
-				// because Go likes to ignore the `Host` header
-				// see https://github.com/golang/go/issues/7682
-				r.Host = v
-			case "content-length":
-				contentLength, _ := strconv.ParseInt(v, 10, 64)
-				r.ContentLength = contentLength
-			case "x-forwarded-for":
-			case "x-real-ip":
-				r.RemoteAddr = v
+		case "host":
+			// we need to set `Host` in the request
+			// because Go likes to ignore the `Host` header
+			// see https://github.com/golang/go/issues/7682
+			r.Host = v
+		case "content-length":
+			contentLength, _ := strconv.ParseInt(v, 10, 64)
+			r.ContentLength = contentLength
+		case "x-forwarded-for":
+		case "x-real-ip":
+			r.RemoteAddr = v
 		}
 	}
 
